@@ -1,0 +1,19 @@
+Jane Smith
+Data Analyst
+
+Professional Summary:
+Data Analyst with 3 years of experience in data processing and visualization. Familiar with Python and basic machine learning concepts.
+
+Skills:
+- Python
+- Data Analysis
+- Excel
+- SQL
+- Tableau
+
+Experience:
+- Data Analyst at Analytics Ltd (2020-Present): Processed data using Python and SQL, created dashboards with Tableau.
+- Intern at Data Co (2019-2020): Assisted in data cleaning and basic analysis.
+
+Education:
+- Bachelor's in Statistics, University of Example, 2019

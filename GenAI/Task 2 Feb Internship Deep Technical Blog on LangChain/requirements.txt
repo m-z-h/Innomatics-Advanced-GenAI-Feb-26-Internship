@@ -1,0 +1,7 @@
+langchain>=0.0.320
+langchain-openai>=0.0.0
+langchain-classic>=1.0.4
+openai>=0.28.0
+faiss-cpu>=1.7.4
+python-dotenv>=1.0.0
+jupyter>=1.0.0

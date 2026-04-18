@@ -1,0 +1,13 @@
+LangChain Architecture Diagram (ASCII)
+
+User --> Prompt --> LLM --> Chain --> Agent --> Output
+                       |                               ^
+                       v                               |
+                    Retrieval -------------------------+
+                       |
+                       v
+                      Docs
+
+Agent --> Tool --> Agent
+
+Memory --> Prompt

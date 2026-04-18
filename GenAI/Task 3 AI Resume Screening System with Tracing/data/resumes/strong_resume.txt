@@ -1,0 +1,24 @@
+John Doe
+Data Scientist
+
+Professional Summary:
+Experienced Data Scientist with 5 years in machine learning and data analysis. Proficient in Python, TensorFlow, scikit-learn, and pandas. Strong background in statistical modeling and big data technologies.
+
+Skills:
+- Python
+- Machine Learning
+- Data Analysis
+- TensorFlow
+- scikit-learn
+- pandas
+- SQL
+- Statistical Modeling
+- Hadoop
+- Spark
+
+Experience:
+- Data Scientist at Tech Corp (2019-Present): Built predictive models using TensorFlow, analyzed datasets with pandas, and optimized SQL queries.
+- Junior Data Analyst at Data Inc (2017-2019): Conducted statistical analysis and data visualization.
+
+Education:
+- Master's in Data Science, University of Example, 2017

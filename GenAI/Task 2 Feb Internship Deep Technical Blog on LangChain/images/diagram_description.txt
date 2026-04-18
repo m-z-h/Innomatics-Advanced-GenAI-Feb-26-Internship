@@ -1,0 +1,37 @@
+Architecture Diagram Description
+
+This file describes the LangChain system architecture diagram for the project.
+
+Elements:
+- User
+- Prompt
+- LLM
+- Chain
+- Agent
+- Tool
+- Output
+- Memory
+- Retrieval
+
+Suggested layout:
+
+1. Draw a leftmost box labeled "User".
+2. Add a second box labeled "Prompt" to the right of User.
+3. Connect User to Prompt with a directed arrow.
+4. Add a third box labeled "LLM" to the right of Prompt.
+5. Connect Prompt to LLM with a directed arrow.
+6. Add a fourth box labeled "Chain" to the right of LLM.
+7. Connect LLM to Chain with a directed arrow.
+8. Add a fifth box labeled "Agent" to the right of Chain.
+9. Connect Chain to Agent with a directed arrow.
+10. Add a sixth box labeled "Tool" below or right of Agent.
+11. Connect Agent to Tool with a directed arrow.
+12. Add a return arrow from Tool back to Agent to show tool results feeding into the decision flow.
+13. Add a final box labeled "Output" to the right of Agent.
+14. Connect Agent to Output with a directed arrow.
+
+Side annotations:
+- Memory can feed into the Prompt stage with a separate arrow or a memory note.
+- Retrieval can also feed prompt/context before the LLM call.
+
+For tools like draw.io, use the same flow with boxes and arrows, and add a side note for memory/retrieval context.

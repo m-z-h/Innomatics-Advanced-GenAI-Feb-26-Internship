@@ -1,0 +1,16 @@
+Job Title: Data Scientist
+
+Job Description:
+We are looking for a skilled Data Scientist with expertise in machine learning, data analysis, and Python programming. The ideal candidate should have experience with tools like TensorFlow, scikit-learn, and pandas. Knowledge of SQL, big data technologies, and statistical modeling is required. The role involves analyzing large datasets, building predictive models, and communicating insights to stakeholders.
+
+Required Skills:
+- Python
+- Machine Learning
+- Data Analysis
+- TensorFlow
+- scikit-learn
+- pandas
+- SQL
+- Statistical Modeling
+
+Preferred Experience: 3+ years in data science or related field.
