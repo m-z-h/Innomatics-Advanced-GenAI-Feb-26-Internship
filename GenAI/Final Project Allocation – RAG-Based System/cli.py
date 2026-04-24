@@ -46,7 +46,7 @@ def init_system():
     try:
         # Create embedding provider
         embedding_provider = create_embedding_provider(provider=config.EMBEDDING_PROVIDER)
-        logger.info(f"✓ Embedding provider initialized ({config.EMBEDDING_PROVIDER})")
+        logger.info(f"[ok] Embedding provider initialized ({config.EMBEDDING_PROVIDER})")
         
         # Create vector store
         vector_store = ChromaDBStore(
@@ -54,23 +54,23 @@ def init_system():
             persist_dir=config.CHROMA_PERSIST_DIR,
             collection_name=config.CHROMA_COLLECTION_NAME
         )
-        logger.info(f"✓ Vector store initialized ({config.CHROMA_PERSIST_DIR})")
+        logger.info(f"[ok] Vector store initialized ({config.CHROMA_PERSIST_DIR})")
         
         # Create retriever
         retriever = Retriever(vector_store, embedding_provider)
-        logger.info("✓ Retriever initialized")
+        logger.info("[ok] Retriever initialized")
         
         # Create query processor
         query_processor = QueryProcessor(retriever)
-        logger.info("✓ Query processor initialized")
+        logger.info("[ok] Query processor initialized")
         
         # Create LLM client
         llm_client = create_llm_client(provider="openai")
-        logger.info("✓ LLM client initialized")
+        logger.info("[ok] LLM client initialized")
         
         # Create escalation manager
         escalation_manager = EscalationManager()
-        logger.info("✓ Escalation manager initialized")
+        logger.info("[ok] Escalation manager initialized")
         
         # Create workflow engine
         workflow_engine = RAGWorkflowEngine(
@@ -79,13 +79,13 @@ def init_system():
             llm_client=llm_client,
             escalation_manager=escalation_manager
         )
-        logger.info("✓ Workflow engine initialized")
+        logger.info("[ok] Workflow engine initialized")
         
         logger.info("RAG system ready!")
         return True
         
     except Exception as e:
-        logger.error(f"✗ Initialization failed: {str(e)}")
+        logger.error(f"[error] Initialization failed: {str(e)}")
         return False
 
 
@@ -96,24 +96,24 @@ def cli():
 
 
 @cli.command()
-@click.argument("pdf_path", type=click.Path(exists=True))
-def upload(pdf_path):
-    """Upload and index a PDF document"""
+@click.argument("document_path", type=click.Path(exists=True))
+def upload(document_path):
+    """Upload and index a document (.pdf, .md, or .txt)"""
     
     if not init_system():
         sys.exit(1)
     
     try:
-        click.echo(f"📄 Loading PDF: {pdf_path}")
+        click.echo(f"Loading document: {document_path}")
         
-        # Load PDF
+        # Load document
         processor = DocumentProcessor()
-        pdf_doc = processor.load_pdf(pdf_path)
+        pdf_doc = processor.load_document(document_path)
         
-        click.echo(f"✓ Loaded {pdf_doc.total_pages} pages")
+        click.echo(f"Loaded {pdf_doc.total_pages} pages")
         
         # Create chunks
-        click.echo("🔄 Creating chunks...")
+        click.echo("Creating chunks...")
         chunker = create_chunker(
             strategy=config.CHUNKING_STRATEGY,
             chunk_size=config.CHUNK_SIZE,
@@ -129,22 +129,22 @@ def upload(pdf_path):
             )
             chunks.extend(block_chunks)
         
-        click.echo(f"✓ Created {len(chunks)} chunks")
+        click.echo(f"Created {len(chunks)} chunks")
         
         # Add to vector store
-        click.echo("📝 Indexing chunks...")
+        click.echo("Indexing chunks...")
         vector_store.add_chunks(chunks)
         
-        click.echo(f"✓ Successfully indexed {len(chunks)} chunks")
+        click.echo(f"Successfully indexed {len(chunks)} chunks")
         
         # Show stats
         stats = vector_store.get_collection_stats()
-        click.echo(f"\n📊 Collection Statistics:")
+        click.echo("\nCollection statistics:")
         for key, value in stats.items():
             click.echo(f"  {key}: {value}")
         
     except Exception as e:
-        click.echo(f"✗ Error: {str(e)}", err=True)
+        click.echo(f"Error: {str(e)}", err=True)
         sys.exit(1)
 
 
@@ -158,18 +158,18 @@ def query(query, user_id):
         sys.exit(1)
     
     try:
-        click.echo(f"🔍 Query: {query}")
-        click.echo(f"👤 User: {user_id}")
+        click.echo(f"Query: {query}")
+        click.echo(f"User: {user_id}")
         click.echo("-" * 80)
         
         # Execute workflow
         result = workflow_engine.execute(query=query, user_id=user_id)
         
         # Display results
-        click.echo(f"\n📝 Response:")
+        click.echo("\nResponse:")
         click.echo(result.response)
         
-        click.echo(f"\n📊 Metadata:")
+        click.echo("\nMetadata:")
         click.echo(f"  Query ID: {result.query_id}")
         click.echo(f"  Confidence: {result.confidence:.1%}")
         click.echo(f"  Execution Time: {result.execution_time_ms:.0f}ms")
@@ -179,12 +179,12 @@ def query(query, user_id):
             click.echo(f"  Escalation ID: {result.escalation_id}")
         
         if result.sources:
-            click.echo(f"\n📚 Sources:")
+            click.echo("\nSources:")
             for source in result.sources:
                 click.echo(f"  - {source['file']} (Page {source['page']}, Score: {source['score']:.2f})")
         
     except Exception as e:
-        click.echo(f"✗ Error: {str(e)}", err=True)
+        click.echo(f"Error: {str(e)}", err=True)
         sys.exit(1)
 
 
@@ -223,7 +223,7 @@ def escalations(pending, limit):
         click.echo(f"\nTotal: {len(escalations_list)}")
         
     except Exception as e:
-        click.echo(f"✗ Error: {str(e)}", err=True)
+        click.echo(f"Error: {str(e)}", err=True)
         sys.exit(1)
 
 
@@ -237,7 +237,7 @@ def stats():
     try:
         stats_data = escalation_manager.get_feedback_stats()
         
-        click.echo("\n📊 System Statistics:")
+        click.echo("\nSystem statistics:")
         click.echo("=" * 50)
         
         for key, value in stats_data.items():
@@ -251,7 +251,7 @@ def stats():
                 click.echo(f"{key}: {value}")
         
     except Exception as e:
-        click.echo(f"✗ Error: {str(e)}", err=True)
+        click.echo(f"Error: {str(e)}", err=True)
         sys.exit(1)
 
 
@@ -260,25 +260,25 @@ def health():
     """Check system health"""
     
     try:
-        click.echo("🏥 Checking system health...")
+        click.echo("Checking system health...")
         
         if init_system():
-            click.echo("✓ All components initialized successfully")
+            click.echo("All components initialized successfully")
             
             # Check vector store
             try:
                 stats = vector_store.get_collection_stats()
-                click.echo(f"✓ Vector store: {stats['total_chunks']} chunks")
+                click.echo(f"Vector store: {stats['total_chunks']} chunks")
             except Exception as e:
-                click.echo(f"⚠ Vector store: {str(e)}")
+                click.echo(f"Warning: Vector store: {str(e)}")
             
-            click.echo("\n✓ System is healthy!")
+            click.echo("\nSystem is healthy!")
         else:
-            click.echo("✗ System initialization failed")
+            click.echo("System initialization failed")
             sys.exit(1)
         
     except Exception as e:
-        click.echo(f"✗ Error: {str(e)}", err=True)
+        click.echo(f"Error: {str(e)}", err=True)
         sys.exit(1)
 
 

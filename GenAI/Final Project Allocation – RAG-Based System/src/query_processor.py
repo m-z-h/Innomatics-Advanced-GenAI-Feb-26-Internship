@@ -4,6 +4,7 @@ Processes user queries (cleaning, intent detection, etc.)
 """
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import Dict, Optional
 from src.retrieval import Retriever, RetrievalResult
@@ -80,8 +81,7 @@ class QueryProcessor:
         # Determine if escalation check needed
         requires_escalation_check = (
             retrieval_result.confidence < config.ESCALATION_THRESHOLD or
-            intent_result.confidence < 0.5 or
-            len(retrieval_result.results) < 2
+            (intent_result.intent == "general" and len(retrieval_result.results) == 0)
         )
         
         return ProcessedQuery(
@@ -116,8 +116,14 @@ class QueryProcessor:
             if not keywords:  # Skip general category for matching
                 continue
             
-            # Count keyword matches
-            matches = sum(1 for keyword in keywords if keyword in query_lower)
+            # Count keyword matches with light token-aware matching
+            query_tokens = set(re.findall(r"\w+", query_lower))
+            matches = 0
+            for keyword in keywords:
+                keyword_lower = keyword.lower()
+                keyword_tokens = set(re.findall(r"\w+", keyword_lower))
+                if keyword_lower in query_lower or (keyword_tokens and keyword_tokens.issubset(query_tokens)):
+                    matches += 1
             
             if matches > 0:
                 # Confidence based on number of matches

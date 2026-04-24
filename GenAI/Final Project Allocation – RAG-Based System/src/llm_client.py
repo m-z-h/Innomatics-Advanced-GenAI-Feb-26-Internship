@@ -4,6 +4,7 @@ Interfaces with LLM APIs (OpenAI, local, etc.)
 """
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from typing import Optional
 from openai import OpenAI
@@ -140,6 +141,66 @@ class LocalLLMClient(LLMClient):
             raise
 
 
+class ExtractiveFallbackLLMClient(LLMClient):
+    """Rule-based fallback that answers directly from retrieved context."""
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        if "No relevant context found in knowledge base." in prompt:
+            return "I don't have information about this."
+
+        question_match = re.search(r"Question:\s*(.*?)\nAnswer:", prompt, flags=re.DOTALL)
+        question = question_match.group(1).strip() if question_match else ""
+        question_tokens = set(re.findall(r"\w+", question.lower()))
+
+        matches = re.findall(
+            r"\[\d+\]\s+(.*?)\n\[Source: ([^,\]]+), Page: ([^\]]+)\]",
+            prompt,
+            flags=re.DOTALL,
+        )
+
+        if not matches:
+            return "I don't have information about this."
+
+        chunk_text, source_file, page_number = matches[0]
+
+        best_section = chunk_text
+        section_matches = re.findall(r"^###\s+(.*?)\n(.*?)(?=^###\s+|\Z)", chunk_text, flags=re.MULTILINE | re.DOTALL)
+        best_score = -1
+        for heading, body in section_matches:
+            heading_tokens = set(re.findall(r"\w+", heading.lower()))
+            score = len(question_tokens & heading_tokens)
+            if score > best_score:
+                best_score = score
+                best_section = body
+
+        clean_text = re.sub(r"(?m)^#+\s*", "", best_section)
+        clean_text = re.sub(r"(?m)^\s*[-*]\s*", "", clean_text)
+        clean_text = re.sub(r"(?m)^\s*\d+\.\s*", "", clean_text)
+        clean_text = " ".join(clean_text.split())
+        sentences = re.split(r"(?<=[.!?])\s+", clean_text)
+        answer = " ".join(sentence for sentence in sentences[:2] if sentence).strip()
+
+        if not answer:
+            return "I don't have information about this."
+
+        return f"{answer} [Source: {source_file}, Page: {page_number}]"
+
+
+class FallbackLLMClient(LLMClient):
+    """Uses a primary client and falls back to extractive answers on failure."""
+
+    def __init__(self, primary: LLMClient, fallback: LLMClient):
+        self.primary = primary
+        self.fallback = fallback
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        try:
+            return self.primary.generate(prompt, **kwargs)
+        except Exception as exc:
+            logger.warning(f"Primary LLM failed, using fallback response: {exc}")
+            return self.fallback.generate(prompt, **kwargs)
+
+
 def create_llm_client(provider: str = "openai", **kwargs) -> LLMClient:
     """
     Factory function to create LLM client
@@ -152,8 +213,15 @@ def create_llm_client(provider: str = "openai", **kwargs) -> LLMClient:
         LLMClient instance
     """
     if provider == "openai":
-        return OpenAIClient(**kwargs)
+        fallback = ExtractiveFallbackLLMClient()
+        try:
+            return FallbackLLMClient(primary=OpenAIClient(**kwargs), fallback=fallback)
+        except Exception as exc:
+            logger.warning(f"OpenAI client unavailable, using extractive fallback: {exc}")
+            return fallback
     elif provider == "local":
         return LocalLLMClient(**kwargs)
+    elif provider == "extractive":
+        return ExtractiveFallbackLLMClient()
     else:
         raise ValueError(f"Unknown LLM provider: {provider}")

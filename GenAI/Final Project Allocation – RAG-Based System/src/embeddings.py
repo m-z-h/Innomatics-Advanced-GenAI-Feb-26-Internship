@@ -4,10 +4,13 @@ Generates embeddings for text using various providers
 """
 
 import logging
+import hashlib
+import re
 import numpy as np
 from abc import ABC, abstractmethod
 from typing import List, Optional
 import os
+import config
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +106,59 @@ class LocalEmbedding(EmbeddingProvider):
         return list(embeddings)
 
 
+class HashEmbedding(EmbeddingProvider):
+    """Offline-safe embedding provider using hashed token features."""
+
+    def __init__(self, dimension: int = config.EMBEDDING_DIMENSION):
+        self.dimension = dimension
+        logger.info(f"Initialized hash embedding provider with dimension: {dimension}")
+
+    def _embed_text(self, text: str) -> np.ndarray:
+        vector = np.zeros(self.dimension, dtype=np.float32)
+        tokens = re.findall(r"\w+", text.lower())
+
+        if not tokens:
+            return vector
+
+        for token in tokens:
+            token_bytes = token.encode("utf-8")
+            index = int(hashlib.md5(token_bytes).hexdigest(), 16) % self.dimension
+            sign = 1.0 if int(hashlib.sha1(token_bytes).hexdigest(), 16) % 2 == 0 else -1.0
+            vector[index] += sign
+
+        norm = np.linalg.norm(vector)
+        return vector if norm == 0 else vector / norm
+
+    def embed(self, text: str) -> np.ndarray:
+        return self._embed_text(text)
+
+    def embed_batch(self, texts: List[str]) -> List[np.ndarray]:
+        return [self._embed_text(text) for text in texts]
+
+
+class FallbackEmbeddingProvider(EmbeddingProvider):
+    """Uses a primary provider and falls back to a local hash provider on failure."""
+
+    def __init__(self, primary: EmbeddingProvider, fallback: EmbeddingProvider):
+        self.primary = primary
+        self.fallback = fallback
+        self.dimension = getattr(primary, "dimension", getattr(fallback, "dimension", config.EMBEDDING_DIMENSION))
+
+    def embed(self, text: str) -> np.ndarray:
+        try:
+            return self.primary.embed(text)
+        except Exception as exc:
+            logger.warning(f"Primary embedding provider failed, using fallback: {exc}")
+            return self.fallback.embed(text)
+
+    def embed_batch(self, texts: List[str]) -> List[np.ndarray]:
+        try:
+            return self.primary.embed_batch(texts)
+        except Exception as exc:
+            logger.warning(f"Primary embedding provider failed for batch, using fallback: {exc}")
+            return self.fallback.embed_batch(texts)
+
+
 def create_embedding_provider(provider: str = "openai", **kwargs) -> EmbeddingProvider:
     """
     Factory function to create embedding provider
@@ -115,8 +171,19 @@ def create_embedding_provider(provider: str = "openai", **kwargs) -> EmbeddingPr
         EmbeddingProvider instance
     """
     if provider == "openai":
-        return OpenAIEmbedding(**kwargs)
+        try:
+            primary = OpenAIEmbedding(**kwargs)
+            return FallbackEmbeddingProvider(primary=primary, fallback=HashEmbedding(dimension=primary.dimension))
+        except Exception as exc:
+            logger.warning(f"OpenAI embedding provider unavailable, using hash fallback: {exc}")
+            return HashEmbedding()
     elif provider == "local":
-        return LocalEmbedding(**kwargs)
+        try:
+            return LocalEmbedding(**kwargs)
+        except Exception as exc:
+            logger.warning(f"Local embedding provider unavailable, using hash fallback: {exc}")
+            return HashEmbedding()
+    elif provider == "hash":
+        return HashEmbedding(**kwargs)
     else:
         raise ValueError(f"Unknown embedding provider: {provider}")

@@ -3,6 +3,7 @@ FastAPI REST API for RAG System
 """
 
 import logging
+from contextlib import asynccontextmanager
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -15,13 +16,6 @@ from src.hitl import EscalationManager
 # Setup logging
 logging.basicConfig(level=config.LOG_LEVEL, format=config.LOG_FORMAT)
 logger = logging.getLogger(__name__)
-
-# Create FastAPI app
-app = FastAPI(
-    title="RAG Customer Support Assistant",
-    description="Retrieval-Augmented Generation system with HITL",
-    version="1.0.0"
-)
 
 # Global state (will be initialized)
 workflow_engine: Optional[RAGWorkflowEngine] = None
@@ -71,9 +65,7 @@ class HealthResponse(BaseModel):
     timestamp: str
 
 
-# API Endpoints
-@app.on_event("startup")
-async def startup_event():
+async def initialize_system():
     """Initialize system on startup"""
     global workflow_engine, escalation_manager
     
@@ -116,6 +108,21 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to initialize RAG system: {str(e)}")
         raise
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await initialize_system()
+    yield
+
+
+# Create FastAPI app
+app = FastAPI(
+    title="RAG Customer Support Assistant",
+    description="Retrieval-Augmented Generation system with HITL",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 
 @app.get("/api/v1/health", response_model=HealthResponse)

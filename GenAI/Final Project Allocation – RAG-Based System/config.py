@@ -11,7 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Directories
-BASE_DIR = Path(__file__).parent.parent
+# `config.py` lives at the project root, so its parent is the repo base.
+BASE_DIR = Path(__file__).resolve().parent
 DOCS_DIR = BASE_DIR / "docs"
 DATA_DIR = BASE_DIR / "data"
 LOGS_DIR = BASE_DIR / "logs"
@@ -79,5 +80,3 @@ INTENT_CATEGORIES = {
 INCLUDE_SOURCE_CITATIONS = True
 INCLUDE_CONFIDENCE_SCORE = True
 
-print(f"Configuration loaded from: {BASE_DIR}")
-print(f"API will run on: http://{API_HOST}:{API_PORT}")

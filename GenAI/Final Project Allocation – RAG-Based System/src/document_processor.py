@@ -40,6 +40,18 @@ class DocumentProcessor:
     def __init__(self, logger=None):
         self.logger = logger or logging.getLogger(__name__)
     
+    def load_document(self, file_path: str) -> PDFDocument:
+        """Load a supported document type."""
+        path = Path(file_path)
+        suffix = path.suffix.lower()
+
+        if suffix == ".pdf":
+            return self.load_pdf(str(path))
+        if suffix in {".md", ".txt"}:
+            return self.load_text_file(str(path))
+
+        raise ValueError(f"Unsupported file type: {suffix}. Supported types are .pdf, .md, and .txt")
+
     def load_pdf(self, pdf_path: str) -> PDFDocument:
         """
         Load a PDF file and extract text with metadata
@@ -102,6 +114,46 @@ class DocumentProcessor:
         except Exception as e:
             self.logger.error(f"Error loading PDF {pdf_path}: {str(e)}")
             raise
+
+    def load_text_file(self, file_path: str) -> PDFDocument:
+        """
+        Load a Markdown or plain-text file into the shared document format.
+
+        Args:
+            file_path: Path to text-based knowledge file
+
+        Returns:
+            PDFDocument-compatible object for downstream chunking/indexing
+        """
+        text_path = Path(file_path)
+
+        if not text_path.exists():
+            raise FileNotFoundError(f"File not found: {text_path}")
+
+        self.logger.info(f"Loading text document: {text_path}")
+
+        try:
+            content = text_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            content = text_path.read_text(encoding="utf-8", errors="replace")
+
+        text_blocks = [
+            TextBlock(
+                text=content,
+                page_number=1,
+                source_file=text_path.name,
+                char_position=0,
+            )
+        ]
+
+        return PDFDocument(
+            filename=text_path.name,
+            file_path=str(text_path),
+            total_pages=1,
+            text_blocks=text_blocks,
+            metadata={"title": text_path.stem, "author": "Unknown", "created": "Unknown", "subject": "text"},
+            loaded_at=datetime.now(),
+        )
     
     def batch_process_pdfs(self, pdf_directory: str) -> List[PDFDocument]:
         """
