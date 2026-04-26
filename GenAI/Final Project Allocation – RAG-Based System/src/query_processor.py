@@ -28,6 +28,7 @@ class ProcessedQuery:
     cleaned_query: str
     intent: str
     intent_confidence: float
+    retrieval_result: RetrievalResult
     retrieved_chunks: any  # List[Chunk]
     retrieval_scores: list
     avg_retrieval_confidence: float
@@ -89,6 +90,7 @@ class QueryProcessor:
             cleaned_query=cleaned_query,
             intent=intent_result.intent,
             intent_confidence=intent_result.confidence,
+            retrieval_result=retrieval_result,
             retrieved_chunks=retrieval_result.results,
             retrieval_scores=[r.similarity_score for r in retrieval_result.results],
             avg_retrieval_confidence=retrieval_result.confidence,

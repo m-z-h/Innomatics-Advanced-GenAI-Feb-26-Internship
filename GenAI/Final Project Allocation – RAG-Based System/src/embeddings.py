@@ -49,7 +49,9 @@ class OpenAIEmbedding(EmbeddingProvider):
         if not self.api_key:
             raise ValueError("OpenAI API key not provided and OPENAI_API_KEY not set")
         
-        self.client = OpenAI(api_key=self.api_key)
+        # Fail fast and let the local fallback take over when the remote API is
+        # unavailable or over quota.
+        self.client = OpenAI(api_key=self.api_key, max_retries=0)
         self.model = model
         self.dimension = 1536 if "3-small" in model else 3072
         

@@ -182,12 +182,9 @@ class RAGWorkflowEngine:
         
         processed_query = state["processed_query"]
         
-        # Retrieve chunks
-        retrieval_result = self.retriever.retrieve(
-            processed_query.cleaned_query,
-            top_k=config.RETRIEVAL_TOP_K,
-            threshold=config.RETRIEVAL_SCORE_THRESHOLD
-        )
+        # Reuse the retrieval already performed during query processing to avoid
+        # duplicate embedding/search calls on every request.
+        retrieval_result = processed_query.retrieval_result
         
         state["retrieval_result"] = retrieval_result
         state["confidence_score"] = retrieval_result.confidence

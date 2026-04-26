@@ -37,7 +37,9 @@ class OpenAIClient(LLMClient):
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY not set")
         
-        self.client = OpenAI(api_key=self.api_key)
+        # Fail fast and use the extractive fallback instead of waiting through
+        # repeated remote retries when the API is unavailable or over quota.
+        self.client = OpenAI(api_key=self.api_key, max_retries=0)
         self.model = model
         
         logger.info(f"Initialized OpenAI client with model: {model}")
